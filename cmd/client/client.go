@@ -1,12 +1,15 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	pb "github.com/Hind3ight/Grpc-Demo/api/protocol"
+	"github.com/Hind3ight/Grpc-Demo/pkg/utils"
 	"google.golang.org/grpc"
 	"io"
 	"log"
+	"os"
 	"time"
 )
 
@@ -20,7 +23,8 @@ func main() {
 	client := pb.NewRouteGuideClient(conn)
 	//runFirst(client)
 	//runSecond(client)
-	runSecond(client)
+	//runThird(client)
+	runForth(client)
 }
 
 func runFirst(client pb.RouteGuideClient) {
@@ -91,4 +95,39 @@ func runThird(client pb.RouteGuideClient) {
 		log.Fatalln(err)
 	}
 	fmt.Println(summary)
+}
+
+func runForth(client pb.RouteGuideClient) {
+	stream, err := client.Recommend(context.Background())
+	if err != nil {
+		log.Fatalln(err)
+	}
+	// this goroutine listen to the server stream
+	go func() {
+		feature, err2 := stream.Recv()
+		if err2 != nil {
+			log.Fatalln(err2)
+		}
+		fmt.Println("Recommended: ", feature)
+	}()
+
+	reader := bufio.NewReader(os.Stdin)
+	for {
+		request := pb.RecommendationRequest{
+			Point: new(pb.Point),
+		}
+		var mode int32
+		fmt.Print("Enter Recommendation Mode (0 for farthest, 1 for nearest)")
+		utils.ReadIntFromCommandLine(reader, &mode)
+		fmt.Print("Enter Latitude: ")
+		utils.ReadIntFromCommandLine(reader, &request.Point.Latitude)
+		fmt.Print("Enter Longitude: ")
+		utils.ReadIntFromCommandLine(reader, &request.Point.Longitude)
+		request.Mode = pb.RecommendationMode(mode)
+
+		if err := stream.Send(&request); err != nil {
+			log.Fatalln(err)
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
 }

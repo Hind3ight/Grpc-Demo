@@ -1,7 +1,10 @@
 package utils
 
 import (
+	"bufio"
+	"fmt"
 	pb "github.com/Hind3ight/Grpc-Demo/api/protocol"
+	"log"
 	"math"
 )
 
@@ -39,4 +42,11 @@ func CalcDistance(p1 *pb.Point, p2 *pb.Point) int32 {
 
 func toRadians(num float64) float64 {
 	return num * math.Pi / float64(180)
+}
+
+func ReadIntFromCommandLine(reader *bufio.Reader, target *int32) {
+	_, err := fmt.Fscanf(reader, "%d\n", target)
+	if err != nil {
+		log.Fatalln("Cannot scan", err)
+	}
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	pb "github.com/Hind3ight/Grpc-Demo/api/protocol" // 引入route.proto的package
 	"github.com/Hind3ight/Grpc-Demo/pkg/utils"
 	"google.golang.org/grpc"
@@ -64,6 +65,48 @@ func (s *routeGuideServer) RecordRoute(stream pb.RouteGuide_RecordRouteServer) e
 	}
 }
 
+func (s *routeGuideServer) recommendOnce(request *pb.RecommendationRequest) (*pb.Feature, error) {
+	var nearest, farthest *pb.Feature
+	var nearestDistance, farthestDistance int32
+
+	for _, feature := range s.features {
+		distance := utils.CalcDistance(feature.Location, request.Point)
+		if nearest == nil || distance < nearestDistance {
+			nearestDistance = distance
+			nearest = feature
+		}
+		if farthest == nil || distance > farthestDistance {
+			farthestDistance = distance
+			farthest = feature
+		}
+	}
+	if request.Mode == pb.RecommendationMode_GetFarthest {
+		return farthest, nil
+	} else {
+		return nearest, nil
+	}
+}
+
+func (s *routeGuideServer) Recommend(stream pb.RouteGuide_RecommendServer) error {
+	for {
+		request, err := stream.Recv()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		recommended, err := s.recommendOnce(request)
+		if err != nil {
+			return err
+		}
+		err = stream.Send(recommended)
+		if err != nil {
+			return err
+		}
+		fmt.Println(recommended)
+	}
+}
 func main() {
 	lis, err := net.Listen("tcp", ":5000")
 	if err != nil {
