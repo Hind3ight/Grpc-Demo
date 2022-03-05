@@ -1,0 +1,50 @@
+syntax = "proto3";// 定义语法
+
+option go_package = "github.com/Hind3ight/Grpc-Demo/api/protocol"; // 文件所在包
+
+package protocol;
+
+message Point { // 定义点的结构体
+  int32 latitude = 1; // 纬度
+  int32 longitude = 2; // 经度
+}
+
+message Rectangle { // 定义范围
+  Point lo = 1;
+  Point hi = 2;
+}
+
+message Feature { // 定义地点
+  string name = 1;
+  Point location = 2;
+}
+
+message RouteSummary { // 定义路线统计
+  int32 point_count = 1;
+  int32 distance = 2; // 距离
+  int32 elapsed_time = 3;
+}
+
+enum RecommendationMode { // enum和message不同，从0开始
+  GetFarthest = 0;
+  GetNearest = 1;
+}
+
+message RecommendationRequest { // 推荐
+  RecommendationMode mode = 1; // 推荐模式
+  Point point = 2; // 点
+}
+
+service RouteGuide { //定义服务
+  // unary
+  rpc GetFeatures(Point) returns (Feature) {}
+
+  // server side streaming
+  rpc ListFeatures(Rectangle) returns (stream Feature) {}
+
+  // client side streaming
+  rpc RecordRoute(stream Point) returns (RouteSummary) {}
+
+  // bidirectional streaming
+  rpc Recommend(stream RecommendationRequest) returns (stream Feature) {}
+}
