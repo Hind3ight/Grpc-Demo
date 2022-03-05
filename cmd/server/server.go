@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	pb "github.com/Hind3ight/Grpc-Demo/api/protocol" // 引入route.proto的package
+	"github.com/Hind3ight/Grpc-Demo/pkg/utils"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
 	"io/ioutil"
@@ -23,6 +24,17 @@ func (s *routeGuideServer) GetFeatures(ctx context.Context, point *pb.Point) (*p
 		}
 	}
 	return nil, nil
+}
+
+func (s *routeGuideServer) ListFeatures(rectangle *pb.Rectangle, stream pb.RouteGuide_ListFeaturesServer) error {
+	for _, feature := range s.features {
+		if utils.InRange(feature.Location, rectangle) {
+			if err := stream.Send(feature); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func main() {
