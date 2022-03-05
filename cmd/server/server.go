@@ -7,9 +7,11 @@ import (
 	"github.com/Hind3ight/Grpc-Demo/pkg/utils"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
+	"io"
 	"io/ioutil"
 	"log"
 	"net"
+	"time"
 )
 
 type routeGuideServer struct {
@@ -35,6 +37,31 @@ func (s *routeGuideServer) ListFeatures(rectangle *pb.Rectangle, stream pb.Route
 		}
 	}
 	return nil
+}
+
+func (s *routeGuideServer) RecordRoute(stream pb.RouteGuide_RecordRouteServer) error {
+	startTime := time.Now()
+	var pointCount, distance int32
+	var prevPoint *pb.Point
+	for {
+		point, err := stream.Recv()
+		if err == io.EOF {
+			endTime := time.Now()
+			return stream.SendAndClose(&pb.RouteSummary{
+				PointCount:  pointCount,
+				Distance:    distance,
+				ElapsedTime: int32(endTime.Sub(startTime).Seconds()),
+			})
+		}
+		if err != nil {
+			return err
+		}
+		pointCount++
+		if prevPoint != nil {
+			distance += utils.CalcDistance(prevPoint, point)
+		}
+		prevPoint = point
+	}
 }
 
 func main() {

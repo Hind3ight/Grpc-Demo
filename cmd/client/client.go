@@ -7,6 +7,7 @@ import (
 	"google.golang.org/grpc"
 	"io"
 	"log"
+	"time"
 )
 
 func main() {
@@ -18,8 +19,8 @@ func main() {
 
 	client := pb.NewRouteGuideClient(conn)
 	//runFirst(client)
+	//runSecond(client)
 	runSecond(client)
-
 }
 
 func runFirst(client pb.RouteGuideClient) {
@@ -58,4 +59,36 @@ func runSecond(client pb.RouteGuideClient) {
 		}
 		fmt.Println(feature)
 	}
+}
+
+func runThird(client pb.RouteGuideClient) {
+	points := []*pb.Point{
+		{
+			Latitude: 22287502, Longitude: 114149268,
+		},
+		{
+			Latitude: 22480666, Longitude: 113418481,
+		},
+		{
+			Latitude: 40068078, Longitude: 124330737,
+		},
+	}
+
+	clientStream, err := client.RecordRoute(context.Background())
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	for _, point := range points {
+		if err := clientStream.Send(point); err != nil {
+			log.Fatalln(err)
+		}
+		time.Sleep(time.Second)
+	}
+
+	summary, err := clientStream.CloseAndRecv()
+	if err != nil {
+		log.Fatalln(err)
+	}
+	fmt.Println(summary)
 }
